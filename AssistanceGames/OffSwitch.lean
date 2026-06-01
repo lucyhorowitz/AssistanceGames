@@ -1,5 +1,10 @@
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 
+/-!
+This file formalizes a finite version of the off-switch game from the paper "The
+ Off-Switch Game" by Hadfield-Menell et al. (https://arxiv.org/abs/1611.08219).
+-/
+
 variable {α : Type*} [Fintype α] -- states of the world
 
 def expectation (p : PMF α) (f : α → ℝ) : ℝ :=
