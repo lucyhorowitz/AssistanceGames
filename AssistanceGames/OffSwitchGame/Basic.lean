@@ -1,18 +1,10 @@
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-
+import AssistanceGames.Basic
 /-!
 This file formalizes a finite version of the off-switch game from the paper "The
  Off-Switch Game" by Hadfield-Menell et al. (https://arxiv.org/abs/1611.08219).
 -/
 
 variable {α : Type*} [Fintype α] -- states of the world
-
-def expectation (p : PMF α) (f : α → ℝ) : ℝ :=
-  ∑ x : α , ((p x).toReal * f x)
-
-lemma expectation_pure (x : α) (f : α → ℝ) :
-    expectation (PMF.pure x) f = f x := by
-  simp_all [expectation, Finset.sum_eq_single x]
 
 /- Fix an "action" a that a robot might take. -/
 
