@@ -10,6 +10,10 @@ variable {α : Type*} [Fintype α] -- states of the world
 def expectation (p : PMF α) (f : α → ℝ) : ℝ :=
   ∑ x : α , ((p x).toReal * f x)
 
+lemma expectation_pure (x : α) (f : α → ℝ) :
+    expectation (PMF.pure x) f = f x := by
+  simp_all [expectation, Finset.sum_eq_single x]
+
 /- Fix an "action" a that a robot might take. -/
 
 structure offSwitchGame (α : Type*) [Fintype α] where
@@ -55,7 +59,11 @@ noncomputable def rationalPolicy : ℝ → ℝ :=
 def IsRationalPolicy (f : ℝ → ℝ) : Prop :=
   ∀ r : ℝ, f r = rationalPolicy r
 
-theorem incentive_nonneg (G : offSwitchGame α) : IsRationalPolicy G.π → consent_incentive G ≥ 0 := by
+def IsRationalAt (G : offSwitchGame α) (x : α) : Prop :=
+  G.π (G.u x) = rationalPolicy (G.u x)
+
+theorem incentive_nonneg (G : offSwitchGame α) :
+    IsRationalPolicy G.π → consent_incentive G ≥ 0 := by
   intro hrat
   unfold IsRationalPolicy at hrat
   rw [consent_incentive_eq_min, expectation, expectation]
@@ -116,3 +124,61 @@ theorem nonempty_support_incentive_pos (G : offSwitchGame α) :
       rw [hrat (G.u x)]
       simp only [rationalPolicy, ge_iff_le, le_of_lt hu, ↓reduceIte, one_mul]
       exact mul_pos hp hu
+
+lemma incentive_eq_piecewise (G : offSwitchGame α) (x : α) :
+    (G.p = PMF.pure x) → consent_incentive G =
+      if G.u x < 0 then G.π (G.u x) * G.u x else G.π (G.u x) * G.u x - G.u x := by
+  intro hdirac
+  rw [consent_incentive, hdirac, expectation_pure, expectation_pure]
+  by_cases hu : G.u x < 0
+  · simp_all only [↓reduceIte, sub_eq_self, sup_eq_right]
+    exact Std.le_of_lt hu
+  · simp_all
+
+theorem rational_at_of_optimal_of_dirac (G : offSwitchGame α) (x : α) :
+    G.p = PMF.pure x →
+      G.u x ≠ 0 →
+      consent_incentive G ≥ 0 →
+      IsRationalAt G x := by
+  intro hdirac hnonz hinc
+  rw [IsRationalAt, rationalPolicy]
+  rw [consent_incentive, hdirac, expectation_pure, expectation_pure] at hinc
+  by_cases hu : G.u x ≥ 0
+  · simp_all
+    have hu_pos : 0 < G.u x := lt_of_le_of_ne' hu hnonz
+    have hπ_ge_one : 1 ≤ G.π (G.u x) := by
+      nlinarith [hinc, hu_pos]
+    have hπ_le_one : G.π (G.u x) ≤ 1 := by exact G.hπ_le_one (G.u x)
+    linarith
+  · simp only [ge_iff_le]
+    have hu_neg : G.u x < 0 := lt_of_not_ge hu
+    simp only [ge_iff_le, sub_nonneg, sup_le_iff] at hinc
+    have hπ_nonpos : G.π (G.u x) ≤ 0 := by
+      rw [mul_comm] at hinc
+      exact nonpos_of_mul_nonneg_right hinc.2 hu_neg
+    simp only [hu, ↓reduceIte]
+    exact le_antisymm hπ_nonpos (G.hπ_ge_zero (G.u x))
+
+theorem optimal_of_rational_at_of_dirac (G : offSwitchGame α) (x : α) :
+    G.p = PMF.pure x →
+      IsRationalAt G x →
+      consent_incentive G ≥ 0 := by
+  intro hdirac hrat
+  by_cases! hu : 0 ≤ G.u x
+  · rw [consent_incentive, hdirac, expectation_pure, expectation_pure]
+    simp [IsRationalAt, rationalPolicy] at hrat
+    simp_all
+  · have hpiece := incentive_eq_piecewise G x hdirac
+    rw [hpiece]
+    unfold IsRationalAt at hrat
+    rw [hrat]
+    simp [rationalPolicy, hu, not_le_of_gt hu]
+
+theorem optimal_iff_rationalPolicy_of_dirac (G : offSwitchGame α) (x : α) :
+    G.p = PMF.pure x →
+      G.u x ≠ 0 →
+      (IsRationalAt G x ↔ consent_incentive G ≥ 0) := by
+  intro hdirac hne
+  constructor
+  · exact optimal_of_rational_at_of_dirac G x hdirac
+  · exact rational_at_of_optimal_of_dirac G x hdirac hne
