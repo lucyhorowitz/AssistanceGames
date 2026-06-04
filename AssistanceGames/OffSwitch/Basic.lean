@@ -18,26 +18,26 @@ structure offSwitchGame (α : Type*) [MeasurableSpace α] where
 def HasFiniteExpectations (G : offSwitchGame α) : Prop :=
   Integrable G.u G.p ∧ Integrable (fun x ↦ G.π (G.u x) * G.u x) G.p
 
-noncomputable def consent_incentive (G : offSwitchGame α) : ℝ :=
+noncomputable def deferenceIncentive (G : offSwitchGame α) : ℝ :=
   G.p[fun x ↦ G.π (G.u x) * G.u x] - max G.p[G.u] 0
 
-theorem consent_incentive_eq_min (G : offSwitchGame α) (hg : HasFiniteExpectations G) :
-    consent_incentive G =
+theorem deferenceIncentive_eq_min (G : offSwitchGame α) (hg : HasFiniteExpectations G) :
+    deferenceIncentive G =
       min
         G.p[fun x ↦ G.π (G.u x) * G.u x - G.u x]
         G.p[fun x ↦ G.π (G.u x) * G.u x] := by
   obtain ⟨hu, hπu⟩ := hg
-  rw [consent_incentive, sub_max_zero_eq_min_sub,
+  rw [deferenceIncentive, sub_max_zero_eq_min_sub,
         expectation_mul_sub_eq_expectation_sub G.p G.u G.π hπu hu]
 
 def IsRationalAt (G : offSwitchGame α) (x : α) : Prop :=
   G.π (G.u x) = rationalPolicy (G.u x)
 
-theorem incentive_nonneg (G : offSwitchGame α) (hG : HasFiniteExpectations G) :
-    IsRationalPolicy G.π → consent_incentive G ≥ 0 := by
+theorem deferenceIncentive_nonneg (G : offSwitchGame α) (hG : HasFiniteExpectations G) :
+    IsRationalPolicy G.π → deferenceIncentive G ≥ 0 := by
   intro hrat
   unfold IsRationalPolicy at hrat
-  rw [consent_incentive_eq_min G hG]
+  rw [deferenceIncentive_eq_min G hG]
   apply le_min
   · have hnonneg : ∀ x, 0 ≤ G.π (G.u x) * G.u x - G.u x := by
       intro x
@@ -58,17 +58,17 @@ theorem incentive_nonneg (G : offSwitchGame α) (hG : HasFiniteExpectations G) :
         exact Std.IsPreorder.le_refl 0
     exact integral_nonneg hnonneg
 
-theorem nonempty_support_incentive_pos
+theorem deferenceIncentive_pos_of_nonempty_support
     (G : offSwitchGame α) (hG : HasFiniteExpectations G) :
     IsRationalPolicy G.π →
     0 < (G.p : Measure α) {x | 0 < G.u x} →
     0 < (G.p : Measure α) {x | G.u x < 0} →
-    consent_incentive G > 0 := by
+    deferenceIncentive G > 0 := by
   intro hrat hpos hneg
   unfold IsRationalPolicy at hrat
   have hG' := hG
   obtain ⟨hu, hπu⟩ := hG
-  rw [consent_incentive_eq_min G hG']
+  rw [deferenceIncentive_eq_min G hG']
   apply lt_min
   · have hnonneg : ∀ x, 0 ≤ G.π (G.u x) * G.u x - G.u x := by
       intro x
@@ -99,11 +99,11 @@ theorem nonempty_support_incentive_pos
 
 variable [MeasurableSingletonClass α]
 
-lemma incentive_eq_piecewise (G : offSwitchGame α) (x : α) :
-    (G.p = diracProba x) → consent_incentive G =
+lemma deferenceIncentive_eq_piecewise (G : offSwitchGame α) (x : α) :
+    (G.p = diracProba x) → deferenceIncentive G =
       if G.u x < 0 then G.π (G.u x) * G.u x else G.π (G.u x) * G.u x - G.u x := by
   intro hdirac
-  rw [consent_incentive, hdirac]
+  rw [deferenceIncentive, hdirac]
   simp only [diracProba, ProbabilityMeasure.coe_mk, integral_dirac]
   by_cases hu : G.u x < 0
   · simp_all only [↓reduceIte, sub_eq_self, sup_eq_right]
@@ -113,11 +113,11 @@ lemma incentive_eq_piecewise (G : offSwitchGame α) (x : α) :
 theorem rational_at_of_optimal_of_dirac (G : offSwitchGame α) (x : α) :
     G.p = diracProba x →
       G.u x ≠ 0 →
-      consent_incentive G ≥ 0 →
+      deferenceIncentive G ≥ 0 →
       IsRationalAt G x := by
   intro hdirac hnonz hinc
   rw [IsRationalAt, rationalPolicy]
-  rw [consent_incentive, hdirac] at hinc
+  rw [deferenceIncentive, hdirac] at hinc
   simp only [diracProba, ProbabilityMeasure.coe_mk, integral_dirac] at hinc
   by_cases hu : G.u x ≥ 0
   · simp_all
@@ -138,14 +138,14 @@ theorem rational_at_of_optimal_of_dirac (G : offSwitchGame α) (x : α) :
 theorem optimal_of_rational_at_of_dirac (G : offSwitchGame α) (x : α) :
     G.p = diracProba x →
       IsRationalAt G x →
-      consent_incentive G ≥ 0 := by
+      deferenceIncentive G ≥ 0 := by
   intro hdirac hrat
   by_cases! hu : 0 ≤ G.u x
-  · rw [consent_incentive, hdirac]
+  · rw [deferenceIncentive, hdirac]
     simp only [diracProba, ProbabilityMeasure.coe_mk, integral_dirac]
     simp [IsRationalAt, rationalPolicy] at hrat
     simp_all
-  · have hpiece := incentive_eq_piecewise G x hdirac
+  · have hpiece := deferenceIncentive_eq_piecewise G x hdirac
     rw [hpiece]
     unfold IsRationalAt at hrat
     rw [hrat]
@@ -154,7 +154,7 @@ theorem optimal_of_rational_at_of_dirac (G : offSwitchGame α) (x : α) :
 theorem optimal_iff_rationalPolicy_of_dirac (G : offSwitchGame α) (x : α) :
     G.p = diracProba x →
       G.u x ≠ 0 →
-      (IsRationalAt G x ↔ consent_incentive G ≥ 0) := by
+      (IsRationalAt G x ↔ deferenceIncentive G ≥ 0) := by
   intro hdirac hne
   constructor
   · exact optimal_of_rational_at_of_dirac G x hdirac

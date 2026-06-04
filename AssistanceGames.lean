@@ -1,1 +1,1 @@
-import AssistanceGames.OffSwitch.OffSwitch
+import AssistanceGames.OffSwitch.Basic

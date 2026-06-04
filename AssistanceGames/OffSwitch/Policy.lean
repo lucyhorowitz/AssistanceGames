@@ -1,4 +1,8 @@
+import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+
+open MeasureTheory
 
 noncomputable def rationalPolicy : ℝ → ℝ :=
   fun x ↦ (if x ≥ 0 then 1 else 0)
@@ -27,3 +31,13 @@ This existential wrapper is useful for classification statements, while
 `IsNoisilyRationalPolicyWith` is usually more convenient inside proofs. -/
 def IsNoisilyRationalPolicy (f : ℝ → ℝ) : Prop :=
   ∃ β : ℝ, IsNoisilyRationalPolicyWith β f
+
+/-- `π` is differentiable with respect to its utility input. -/
+def IsDifferentiablePolicy (π : ℝ → ℝ) : Prop :=
+  Differentiable ℝ π
+
+/-- The derivative of `π` is integrable under the distribution of utility values `u`. -/
+def IsIntegrablePolicyDerivative
+    {α : Type*} [MeasurableSpace α]
+    (p : ProbabilityMeasure α) (u : α → ℝ) (π : ℝ → ℝ) : Prop :=
+  Integrable (deriv π ∘ u) p
