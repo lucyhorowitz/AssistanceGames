@@ -1,15 +1,20 @@
 import AssistanceGames.Basic
+import AssistanceGames.OffSwitch.Policy
 /-!
 This file formalizes a finite version of the off-switch game from the paper "The
  Off-Switch Game" by Hadfield-Menell et al. (https://arxiv.org/abs/1611.08219).
 -/
+
+namespace Finite
+
+open MeasureTheory
 
 variable {α : Type*} [Fintype α] -- states of the world
 
 /- Fix an "action" a that a robot might take. -/
 
 structure offSwitchGame (α : Type*) [Fintype α] where
-  p : PMF α -- probability that this is the true state of the world
+  p : PMF α -- probability that this is the true state of the world (robot belief abt human util)
   u : α → ℝ -- utility of the state of the world
   π : ℝ → ℝ -- human policy that sends a utility value to the probability of allowing the action
   hπ_ge_zero : ∀ x, 0 ≤ π x
@@ -19,23 +24,15 @@ def consent_incentive (G : offSwitchGame α) : ℝ :=
   expectation G.p (fun x ↦ G.π (G.u x) * G.u x) -
     max (expectation G.p G.u) 0
 
-lemma sub_max_zero_eq_min_sub (a b : ℝ) :
-    a - max b 0 = min (a - b) a := by
-  by_cases! hb : 0 < b
-  · rw [max_eq_left (Std.le_of_lt hb), min_eq_left ?_]
-    linarith
-  · rw [max_eq_right hb, min_eq_right, sub_zero]
-    exact (le_sub_self_iff a).mpr hb
-
 lemma expectation_mul_sub_eq_expectation_sub
     (p : PMF α) (u : α → ℝ) (π : ℝ → ℝ) :
     expectation p (fun x ↦ π (u x) * u x) - expectation p u =
       expectation p (fun x ↦ π (u x) * u x - u x) := by
-  simp only [expectation]
-  rw [← Finset.sum_sub_distrib]
-  apply Finset.sum_congr rfl
-  intro x hx
-  ring
+  letI : MeasurableSpace α := ⊤
+  have hπu : Integrable (fun x ↦ π (u x) * u x) p.toMeasure := Integrable.of_finite
+  have hu : Integrable u p.toMeasure := Integrable.of_finite
+  have h := _root_.expectation_mul_sub_eq_expectation_sub p.toMeasure u π hπu hu
+  simpa [expectation_eq_finite_expectation] using h
 
 theorem consent_incentive_eq_min (G : offSwitchGame α) :
     consent_incentive G =
@@ -44,12 +41,6 @@ theorem consent_incentive_eq_min (G : offSwitchGame α) :
         (expectation G.p (fun x ↦ G.π (G.u x) * G.u x)) := by
   rw [consent_incentive, sub_max_zero_eq_min_sub,
         expectation_mul_sub_eq_expectation_sub]
-
-noncomputable def rationalPolicy : ℝ → ℝ :=
-  fun x ↦ (if x ≥ 0 then 1 else 0)
-
-def IsRationalPolicy (f : ℝ → ℝ) : Prop :=
-  ∀ r : ℝ, f r = rationalPolicy r
 
 def IsRationalAt (G : offSwitchGame α) (x : α) : Prop :=
   G.π (G.u x) = rationalPolicy (G.u x)
@@ -174,3 +165,5 @@ theorem optimal_iff_rationalPolicy_of_dirac (G : offSwitchGame α) (x : α) :
   constructor
   · exact optimal_of_rational_at_of_dirac G x hdirac
   · exact rational_at_of_optimal_of_dirac G x hdirac hne
+
+end Finite
