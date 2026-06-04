@@ -1,4 +1,4 @@
-import Mathlib.Analysis.Complex.Exponential
+import Mathlib.Analysis.SpecialFunctions.Exp
 
 noncomputable def rationalPolicy : ℝ → ℝ :=
   fun x ↦ (if x ≥ 0 then 1 else 0)

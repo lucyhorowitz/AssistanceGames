@@ -1,14 +1,9 @@
 import AssistanceGames.Basic
 import AssistanceGames.OffSwitch.Policy
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
--- import Mathlib.MeasureTheory.Measure.MeasureSpace
 import Mathlib.MeasureTheory.Measure.DiracProba
-import Mathlib.Probability.Distributions.Gaussian.Real
 
 open MeasureTheory
 open ProbabilityTheory
-
-#check diracProba
 
 variable {α : Type*} [MeasurableSpace α]
 

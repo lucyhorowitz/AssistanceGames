@@ -1,7 +1,3 @@
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Probability.ProbabilityMassFunction.Integrals
-import Mathlib.MeasureTheory.Measure.DiracProba
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.Probability.Notation
 
 /-!
@@ -12,28 +8,7 @@ of the random variable `X` under `P`, i.e. the integral `∫ x, X x ∂P`.
 open MeasureTheory
 open scoped ProbabilityTheory
 
-variable {α : Type*}
-
-namespace Finite
-
-variable [Fintype α]
-
-def expectation (p : PMF α) (f : α → ℝ) : ℝ :=
-  ∑ x : α, (p x).toReal * f x
-
-lemma expectation_pure (x : α) (f : α → ℝ) :
-    expectation (PMF.pure x) f = f x := by
-  simp_all [expectation, Finset.sum_eq_single x]
-
-end Finite
-
-variable [MeasurableSpace α]
-
-omit [MeasurableSpace α] in
-theorem expectation_eq_finite_expectation [Fintype α] [MeasurableSpace α]
-    [MeasurableSingletonClass α] (p : PMF α) (f : α → ℝ) :
-    p.toMeasure[f] = Finite.expectation p f := by
-  simpa [Finite.expectation] using (PMF.integral_eq_sum p f)
+variable {α : Type*} [MeasurableSpace α]
 
 lemma sub_max_zero_eq_min_sub (a b : ℝ) :
     a - max b 0 = min (a - b) a := by
